@@ -83,7 +83,7 @@ elsif ($INSPIRE){
     $begin = '';
 }
 elsif ($INSPIRE_UPDATE){
-    $DIR = '/afs/slac/g/library/inspire/data/public//';
+    $DIR = '/afs/slac/g/library/inspire/data/public/';
     $FIRST_YEAR = 1964;
     $LAST_YEAR = This_Year;
     $FORMAT = "xmlinspire";
@@ -93,16 +93,19 @@ elsif ($INSPIRE_UPDATE){
     $irnlist = `pwd`;
     chomp($irnlist);
     $irnlist .= '/'.$args{s};
+    $string = $args{s};
+    $string =~ s/^.*\.(\d+)$/$1/;
 
-    $stack = "STACK.INSPIRE_UPDATE_".join("",Today_and_Now());
-    $stamp = "_update_".join("",Today_and_Now());
-    print "hello:".$args{r}."ready to stack\n";
+    $stack = "STACK.INSPIRE_UPDATE_".$string;
+    $stamp = "_update_".$string;
+    $active = '/tmp/'.$args{s};
     if ( $args{r}) {
 	$stamp =~ s/_update_/remove_/;
     }
     else{
 	system('perl -i -pe \'s/^\s*(\d+)/sta $1/\' '.$irnlist);
-	print $hep->ask("use $irnlist","clr stack", "xeq", "store $stack repl");
+	system("cp $irnlist $active");
+	print $hep->ask("use $active","clr stack", "xeq", "store $stack repl");
 	print "stack stored as: $stack\n";
     }
 

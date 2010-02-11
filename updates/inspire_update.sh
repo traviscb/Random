@@ -18,7 +18,8 @@ find $SPIRES_DIR -type f -mmin -$MINS -exec cp '{}' . \;
 #remove empty files
 grep -l "<records> </records>" *.xml |xargs rm 
 
-
+# no match in glob will exit loop.
+shopt -s nullglob;
 
 for file in *.xml; do 
     /usr/bin/xsltproc SPIRES2MARC.xsl ${file}>| done/${file}.marcxml ;

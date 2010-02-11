@@ -29,7 +29,7 @@ split -l20000 ${BACKUP} ${KEYS}
 
 
 # new files to hold the removes 
-REMS="remove."`date +%Y%m%d`
+REMS="remove."`date +%Y%m%d%H%M%S`
 REMOVE_BU="fullremove."${KEYS}
 
 rm remove.*
@@ -45,6 +45,8 @@ split -l20000 ${REMOVE_BU} ${REMS}
 
 #
 #
+
+shopt -s nullglob;
 
 for file in ${KEYS}?? ; do
     /afs/slac/g/library/bin/spiresdump.pl -tinspire_update -s ${file};
