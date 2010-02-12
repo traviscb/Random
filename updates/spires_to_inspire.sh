@@ -46,17 +46,20 @@ split -l20000 ${REMOVE_BU} ${REMS}
 #
 #
 
-shopt -s nullglob;
 
 for file in ${KEYS}?? ; do
-    /afs/slac/g/library/bin/spiresdump.pl -tinspire_update -s ${file};
-    rm ${file};
+    if [ -s $file ] ; then 
+	/afs/slac/g/library/bin/spiresdump.pl -tinspire_update -s ${file};
+	rm ${file};
+    fi
 done
 
 
 for file in ${REMS}??; do
-    /afs/slac/g/library/bin/spiresdump.pl -r -tinspire_update -s ${file};
-    rm ${file};
+    if [ -s $file ] ; then 
+	/afs/slac/g/library/bin/spiresdump.pl -r -tinspire_update -s ${file};
+	rm ${file};
+    fi
 done
 
 

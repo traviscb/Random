@@ -96,8 +96,8 @@ elsif ($INSPIRE_UPDATE){
     $string = $args{s};
     $string =~ s/^.*\.(\d+)$/$1/;
 
-    $stack = "STACK.INSPIRE_UPDATE_".$string;
-    $stamp = "_update_".$string;
+    $stack = "STACK.".$string;
+    $stamp = $string;
     $active = '/tmp/'.$args{s};
     if ( $args{r}) {
 	$stamp =~ s/_update_/remove_/;
