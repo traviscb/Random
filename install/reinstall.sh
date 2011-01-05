@@ -54,7 +54,7 @@ for arg in $@; do
   elif [ $arg == '--reset-db' ]; then
     echo "Ok, I'll reset the DB"
     export G_DB_RESET="TRUE"
-  elif [ $arg == '--inspire-old' ]; then
+  elif [ $arg == '--inspire' ]; then
     echo "Ok, I'll install INSPIRE from the separate repo"
     export G_OLD_INSPIRE="TRUE"
   elif [ $arg == '--inspire-db' ]; then
@@ -85,22 +85,12 @@ sudo git clean -x -f;
 aclocal && automake -a -c && autoconf -f && ./configure $CONFIGURE_OPTS  0</dev/null \
         && make && sudo make install \
         && sudo chown -R $BIBSCHED_USER:$BIBSCHED_USER $PREFIX \
-        && sudo install -m 660 -o $BIBSCHED_USER -g $BIBSCHED_USER $LOCAL_CONF $PREFIX/etc; 
+        && sudo install -m 660 -o $BIBSCHED_USER -g $BIBSCHED_USER $LOCAL_CONF $PREFIX/etc/invenio-local.conf; 
 if [ $? -eq 0 ]; then
   echo -e "\n** INVENIO INSTALLED SUCCESSFULLY\n";
 else
   exit 1;
 fi
-
-if [ $G_OLD_INSPIRE = 'TRUE' ]; then
-    echo -e "Installing INSPIRE from old repo"
-    cd $INSPIRE_REPO
-    sudo make install
-    make install-dbchanges
-    sudo chown -R $BIBSCHED_USER:$BIBSCHED_USER $PREFIX
-    echo "DONE."
-fi
-
 
 sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --update-all 
 
@@ -110,30 +100,39 @@ else
   exit 1;
 fi
 
+if [ $G_OLD_INSPIRE = 'TRUE' ]; then
+    echo -e "Installing INSPIRE from old repo"
+    cd $INSPIRE_REPO
+    sudo make install
+    sudo make install-dbchanges
+    sudo chown -R $BIBSCHED_USER:$BIBSCHED_USER $PREFIX
+    echo "DONE."
+fi
+
+
 if [ $G_DB_RESET == 'TRUE' ]; then
    echo -e "SETTING UP THE INVENIO TABLES AND DEMO SITE..."
    sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --create-tables \
    && echo -e "\n** MYSQL TABLES CREATED SUCCESSFULLY\n" \
    && sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --load-webstat-conf \
-   && echo -e "\n** WEBSTAT CONF LOADED SUCCESSFULLY\n" \
-   && sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --create-demo-site \
-   && echo -e "\n** DEMO SITE INSTALLED\n" \
-   && sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --load-demo-records \
-   && echo -e "\n** DEMO RECORDS INSTALLED\n" \
-   echo "DONE."
-   
-#   if [ $G_INSPIRE_DB == 'TRUE' ]; then
-#       sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --drop-demo-site --yes-i-know
-#       echo -e "\n** DROPPED DEMO SITE\n" 
-#       sudo -u $BIBSCHED_USER $PREFIX/bin/bibupload -u admin $INSPIRE_RECORDS \
-#       && echo -e "\n** UPLOADED INSPIRE RECORDS\n" \    
-#       && sudo -u  $BIBSCHED_USER $PREFIX/bin/webcoll -uadmin \
-#       && sudo -u  $BIBSCHED_USER $PREFIX/bin/bibindex -uadmin \
-#       && echo -e "\n** webcoll/indexing done\n"     
-#   fi
+   && echo -e "\n** WEBSTAT CONF LOADED SUCCESSFULLY\n" 
+
+   if [ $G_INSPIRE_DB == 'TRUE' ]; then
+       sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --drop-demo-site --yes-i-know
+       echo -e "\n** DROPPED DEMO SITE\n" 
+       sudo -u $BIBSCHED_USER $PREFIX/bin/bibupload -u admin -i $INSPIRE_RECORDS 
+       echo -e "\n** UPLOADED INSPIRE RECORDS\n" 
+       sudo -u  $BIBSCHED_USER $PREFIX/bin/webcoll -uadmin 
+       sudo -u  $BIBSCHED_USER $PREFIX/bin/bibindex -R -uadmin 
+       echo -e "\n** webcoll/indexing done\n"     
+   else
+       sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --create-demo-site
+       echo -e "\n** DEMO SITE INSTALLED\n"
+       sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --load-demo-records 
+       echo -e "\n** DEMO RECORDS INSTALLED\n" 
+       echo "DONE."
+    fi
 fi
-
-
 
 sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --create-apache-conf \
    && sudo install -p -m 660 -g $BIBSCHED_USER -o $BIBSCHED_USER /opt/inspire/invenio-apache-vhost*.conf $PREFIX/etc/apache \
