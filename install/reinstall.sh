@@ -55,13 +55,11 @@ for arg in $@; do
     echo "Ok, I'll reset the DB"
     export G_DB_RESET="TRUE"
   elif [ $arg == '--inspire' ]; then
-    echo "Ok, I'll install INSPIRE from the separate repo"
+    echo "Ok, I'll install INSPIRE from the separate repo and use the
+  inspire conf"
     export G_OLD_INSPIRE="TRUE"
-  elif [ $arg == '--inspire-db' ]; then
-    echo "Ok, I'll use the INSPIRE db"
-    export INVENIO_DB=$INSPIRE_DB
     export LOCAL_CONF=$INSPIRE_CONF
-    export G_INSPIRE_DB="TRUE"
+    export INVENIO_DB=$INSPIRE_DB
   fi
 done
 
@@ -117,7 +115,7 @@ if [ $G_DB_RESET == 'TRUE' ]; then
    && sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --load-webstat-conf \
    && echo -e "\n** WEBSTAT CONF LOADED SUCCESSFULLY\n" 
 
-   if [ $G_INSPIRE_DB == 'TRUE' ]; then
+   if [ $G_OLD_INSPIRE == 'TRUE' ]; then
        sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --drop-demo-site --yes-i-know
        echo -e "\n** DROPPED DEMO SITE\n" 
        sudo -u $BIBSCHED_USER $PREFIX/bin/bibupload -u admin -i $INSPIRE_RECORDS 
