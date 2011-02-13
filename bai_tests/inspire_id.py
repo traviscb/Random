@@ -16,7 +16,7 @@ def find_pids_for_insp_ids(insp_ids):
     '''
 
     mapping = {}
-    verbose = 1
+    verbose = 0
     for iid in insp_ids:
         poss_recs = perform_request_search(p="100__i:INSPIRE-"+iid +" | 700__i:INSPIRE-" + iid)
         mapping[iid] = {'pid':0,'matches':0,'author_cluster':0,'inspire_search':len(poss_recs)}
@@ -68,6 +68,8 @@ def find_insp_ids():
 
 
     ids = run_sql("select value from bib10x where value like 'INSPIRE%'")
+    ids2 = run_sql("select value from bib70x where value like 'INSPIRE%'")
+    ids = set(ids).union(set(ids2))
     return([a[0].split('-')[1] for a in ids])
 
 
@@ -83,15 +85,15 @@ def check_cluster(insp_id, pid = None, name = None):
     @param name: Default=None  The name to lookup in aidPERSON (Not useful
     at the moment'''
 
-     poss_recs = perform_request_search(p="100__i:INSPIRE-"+insp_id +" | 700__i:INSPIRE-"+insp_id)
-     if len(poss_recs)>0:
+    poss_recs = perform_request_search(p="100__i:INSPIRE-"+insp_id +" | 700__i:INSPIRE-"+insp_id)
+    if len(poss_recs)>0:
          for auth in get_authors(get_record(poss_recs[0])):
              ad = dict(auth[0])
              if ad.has_key('i') and  ad['i']=='INSPIRE-' + insp_id:
                  print "INSPIRE ids on %d papers, such as:" % (len(poss_recs),)
                  print "     %d: %s" % (poss_recs[0],str(ad),)
                  name = ad['a']
-     if pid:
+    if pid:
          names = [x[1] for x in bai.get_person_data(pid) if  x[0]=='gathered_name']
          print "\nCluster contains %d names: %s" % (len(names), str(names))
          recs = bwi.webapi.get_papers_by_person_id(pid)
@@ -100,21 +102,21 @@ def check_cluster(insp_id, pid = None, name = None):
          print "Cluster contains %d papers" % (num,)
          match = len(set(recs).intersection(set(poss_recs)))
          print "   of which %d match " % (match,)
-     if name:
+    if name:
          print "\nBAI found %d possible persons" % (len(bai.find_personIDs_by_name_string(name)),)
 
 
-     print "------------"
+    print "------------"
 
 
 def get_statistics(mapping):
     '''gets statistics on the "goodness" of a mapping between pids and
     IIDs.   Parameters on the FRACTION and DIFFERENCE between the inspire
     id searches and the document count in the matched clusters determine
-    that a given correspondence is either GOOD, BAD, or CLOSE.
+    that a given correspondence is either GOOD, BAD, or CLOSE, or FAIL.
 
     @param mapping: dictionary of iid -> data from find_pids_for_insp_ids
-    @return tuple of dictionaries, iid:containing 3 dicts of good, bad and
+    @return tuple of dictionaries, iid:containing dicts of good, bad, fail and
     close iids  stats:containing statistics about the good, bad and close
     assignments
     @rtype tuple
@@ -123,38 +125,49 @@ def get_statistics(mapping):
     DIFF_CUTOFF = 3
     stats = {}
     iids = {}
-    for typ in ['good','bad','close']:
+    for typ in ['good','bad','close','fail']:
         stats[typ]=[]
         iids[typ]=[]
+
+    def add_to_typ(iids,stats,typ,iid,match):
+            iids[typ].append(iid)
+            stats[typ].append((match['matches'],match['inspire_search'],match['author_cluster']))
+            return(iids,stats)
+
     for (iid, match) in mapping.iteritems():
+        if match['matches']==0:
+            (iids,stats) = add_to_typ(iids,stats,'fail',iid, match)
+            continue
         if match['inspire_search'] == match['matches'] or match['author_cluster'] == match['matches']:
-            iids['good'].append(iid)
-            stats['good'].append((match['matches'],match['matches'],1))
+            (iids, stats) = add_to_typ(iids,stats,'good',iid, match)
             continue
         min_match = min(match['author_cluster'],match['inspire_search'])
         fraction = float(match['matches'])/min_match
         if min_match - match['matches'] < DIFF_CUTOFF:
-            iids['close'].append(iid)
-            stats['close'].append((match['matches'],min_match,fraction))
+            (iids, stats) = add_to_typ(iids,stats,'close',iid, match)
             continue
         if fraction > FRACTION_CUTOFF:
-            iids['close'].append(iid)
-            stats['close'].append((match['matches'],min_match,fraction))
+            (iids, stats) = add_to_typ(iids,stats,'close',iid, match)
         else:
-            iids['bad'].append(iid)
-            stats['bad'].append((match['matches'],min_match,fraction))
-    for typ in ['good','bad','close']:
+            (iids, stats) = add_to_typ(iids,stats,'bad',iid, match)
+    alg_succ = 0
+    alg_total = 0
+    for typ in ['good','bad','close', 'fail']:
         sum_match = 0
-        sum_poss = 0
-        sum_frac = 0
+        sum_iid = 0
+        sum_clus = 0
         for row in stats[typ]:
             sum_match += row[0]
-            sum_poss += row[1]
-            sum_frac += row[2]
-        print "%d of type %s\n  matches:%d possible:%d avg. frac:%f" % (len(stats[typ]),typ,sum_match,sum_poss,sum_frac/float(len(stats[typ])))
+            sum_iid += row[1]
+            sum_clus += row[2]
+        print "%d of type %s\n  matches:%d IIDs:%d  Clustered:%d" % (len(stats[typ]),typ,sum_match,sum_iid,sum_clus)
+        if typ in ['good','close','bad']:
+            alg_succ += sum_match
+            alg_total += sum_iid
 
+    print "--------\nAlgorithm Success: %f  (good, close and bad matches/total possible iid recs)"% (alg_succ/float(alg_total))
 
-    print"--------\nTotal:%d  Fraction Accepted:%f" % (len(mapping), (len(stats['good'])+len(stats['close']))/float(len(mapping)))
+    print "--------\nProfile Success: %f  %d profiles accepted  [ignoring %s fails]" % ((len(stats['good'])+len(stats['close']))/float(len(mapping)-len(stats['fail'])),len(mapping)-len(stats['fail']),len(stats['fail']))
     return(iids, stats)
 
 
