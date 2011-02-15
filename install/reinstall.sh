@@ -55,8 +55,7 @@ for arg in $@; do
     echo "Ok, I'll reset the DB"
     export G_DB_RESET="TRUE"
   elif [ $arg == '--inspire' ]; then
-    echo "Ok, I'll install INSPIRE from the separate repo and use the
-  inspire conf"
+    echo "Ok, I'll install INSPIRE from the separate repo and use the  inspire conf"
     export G_OLD_INSPIRE="TRUE"
     export LOCAL_CONF=$INSPIRE_CONF
     export INVENIO_DB=$INSPIRE_DB
@@ -71,8 +70,7 @@ sudo -u $BIBSCHED_USER $PREFIX/bin/bibsched stop
 if [ $G_DB_RESET == 'TRUE' ]; then
     echo -e "DROPPING AND RECREATING THE DATABASE...";
     echo "drop database $INVENIO_DB;" | mysql -u root --password=$MYSQL_ROOT_PASS; 
-    echo "CREATE DATABASE $INVENIO_DB DEFAULT CHARACTER SET utf8; GRANT ALL PRIVILEGES ON $INVENIO_DB.* TO $INVENIO_DB_USER@localhost IDENTIFIED BY '$INVENIO_DB_PASS';" | 
-mysql -u root --password=$MYSQL_ROOT_PASS; 
+    echo "CREATE DATABASE $INVENIO_DB DEFAULT CHARACTER SET utf8; GRANT ALL PRIVILEGES ON $INVENIO_DB.* TO $INVENIO_DB_USER@localhost IDENTIFIED BY '$INVENIO_DB_PASS';" | mysql -u root --password=$MYSQL_ROOT_PASS; 
     echo "DONE.";
 fi
 
@@ -114,6 +112,9 @@ if [ $G_DB_RESET == 'TRUE' ]; then
    && echo -e "\n** MYSQL TABLES CREATED SUCCESSFULLY\n" \
    && sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --load-webstat-conf \
    && echo -e "\n** WEBSTAT CONF LOADED SUCCESSFULLY\n" 
+   sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --create-demo-site
+   echo -e "\n** DEMO SITE INSTALLED\n"
+
 
    if [ $G_OLD_INSPIRE == 'TRUE' ]; then
        sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --drop-demo-site --yes-i-know
@@ -124,8 +125,6 @@ if [ $G_DB_RESET == 'TRUE' ]; then
        sudo -u  $BIBSCHED_USER $PREFIX/bin/bibindex -R -uadmin 
        echo -e "\n** webcoll/indexing done\n"     
    else
-       sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --create-demo-site
-       echo -e "\n** DEMO SITE INSTALLED\n"
        sudo -u $BIBSCHED_USER $PREFIX/bin/inveniocfg --load-demo-records 
        echo -e "\n** DEMO RECORDS INSTALLED\n" 
        echo "DONE."
