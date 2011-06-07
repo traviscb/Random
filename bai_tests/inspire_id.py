@@ -2,7 +2,7 @@ import invenio.bibauthorid_webinterface as bwi
 import invenio.bibauthorid_personid_tables_utils as bai
 from invenio.search_engine import get_record, perform_request_search
 from invenio.dbquery import run_sql
-
+import sys.argv
 
 def find_pids_for_insp_ids(insp_ids):
     ''' Take a list of INSPIRE Ids ( INSPIRE-XXX) (IID) and generate a
@@ -181,7 +181,19 @@ def set_insp_ids(mapping):
          bai.set_person_data(data['pid'],'inspire_id',iid)
 
 
+def print_insp_ids(mapping):
+    ''' uses a mapping of inspi ids to PIDs to set info in aidPERSON
+    tables.   Should be used when mapping is finalized
+
+    @param mapping: dictionary of iid -> data from find_pids_for_insp_ids
+    '''
+    for (iid,data) in mapping.iteritems():
+         print iid, data['pid']
+
 
 def main():
-    cutoff = 2000;
-    get_statistics(find_pids_for_insp_ids(find_insp_ids()[0:cutoff]))
+    sys.argv = argv[1]
+    cutoff = 20
+    #    get_statistics(find_pids_for_insp_ids(find_insp_ids()[0:cutoff]))
+    mapping = find_pids_for_insp_ids(iids[0:cutoff])
+    print_insp_ids(mapping)
