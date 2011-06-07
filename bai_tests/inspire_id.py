@@ -188,7 +188,7 @@ def print_insp_ids(mapping):
     @param mapping: dictionary of iid -> data from find_pids_for_insp_ids
     '''
     for (iid,data) in mapping.iteritems():
-         print iid, data['pid']
+         print "INSPIRE id %d  ->  %d" % iid, data['pid']
 
 
 def main():
